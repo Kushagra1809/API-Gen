@@ -47,6 +47,10 @@ MAX_CONCURRENT_CHECKS = 20
 DEFAULT_PYTHON_VERSION = "3.11"
 DEFAULT_PORT = 8000
 
-# Ensure directories exist
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+# Ensure directories exist (only create if writable)
+try:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    # On Vercel, some paths may not be writable during import
+    pass
