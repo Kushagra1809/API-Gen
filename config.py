@@ -6,8 +6,16 @@ from pathlib import Path
 
 # ─── Paths ───────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "data" / "api_platform.db"
-GENERATED_DIR = BASE_DIR / "generated_projects"
+
+# Check if running on Vercel (serverless) - use /tmp for writable storage
+IS_VERCEL = os.getenv("VERCEL", "") == "1"
+if IS_VERCEL:
+    DB_PATH = Path("/tmp/api_platform.db")
+    GENERATED_DIR = Path("/tmp/generated_projects")
+else:
+    DB_PATH = BASE_DIR / "data" / "api_platform.db"
+    GENERATED_DIR = BASE_DIR / "generated_projects"
+
 TEMPLATES_DIR = BASE_DIR / "generator" / "templates"
 
 # ─── Database ────────────────────────────────────────────
@@ -39,6 +47,10 @@ MAX_CONCURRENT_CHECKS = 20
 DEFAULT_PYTHON_VERSION = "3.11"
 DEFAULT_PORT = 8000
 
-# Ensure directories exist
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+# Ensure directories exist (only create if writable)
+try:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    # On Vercel, some paths may not be writable during import
+    pass
