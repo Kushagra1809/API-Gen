@@ -164,6 +164,234 @@ FEATURE_CATEGORY_MAP = {
     "deployment":    "devtools",
     "github":        "devtools",
     "hosting":       "devtools",
+
+    # Animals
+    "animal":        "animals",
+    "pet":           "animals",
+    "dog":           "animals",
+    "cat":           "animals",
+    "wildlife":      "animals",
+
+    # Anime
+    "anime":         "anime_manga",
+    "manga":         "anime_manga",
+
+    # Books
+    "book":          "books_literature",
+    "library":       "books_literature",
+    "literature":    "books_literature",
+    "reading":       "books_literature",
+
+    # Food
+    "food":          "food_drink",
+    "recipe":        "food_drink",
+    "nutrition":     "food_drink",
+    "restaurant":    "food_drink",
+    "meal":          "food_drink",
+    "drink":         "food_drink",
+
+    # Games
+    "game":          "games_comics",
+    "gaming":        "games_comics",
+    "comic":         "games_comics",
+    "esports":       "games_comics",
+
+    # Health
+    "health":        "health",
+    "medical":       "health",
+    "fitness":       "health",
+    "disease":       "health",
+    "covid":         "health",
+
+    # Sports
+    "sport":         "sports",
+    "football":      "sports",
+    "soccer":        "sports",
+    "basketball":    "sports",
+
+    # Entertainment
+    "movie":         "entertainment",
+    "tv show":       "entertainment",
+    "entertainment": "entertainment",
+    "trivia":        "entertainment",
+
+    # Science
+    "science":       "science_math",
+    "math":          "science_math",
+    "space":         "science_math",
+    "physics":       "science_math",
+    "chemistry":     "science_math",
+
+    # Government
+    "government":    "government_data",
+    "open data":     "government_data",
+    "census":        "government_data",
+    "earthquake":    "government_data",
+
+    # Anti-Malware
+    "anti": "anti_malware",
+    "malware": "anti_malware",
+    "anti malware": "anti_malware",
+
+    # Art & Design
+    "art": "art_design",
+    "design": "art_design",
+    "art design": "art_design",
+
+    # Authentication & Authorization
+    "authentication": "authentication_authorization",
+    "authorization": "authentication_authorization",
+    "authentication authorization": "authentication_authorization",
+
+    # Blockchain
+    "blockchain": "blockchain",
+    "blockchain": "blockchain",
+
+    # Books
+    "books": "books",
+    "books": "books",
+
+    # Business
+    "business": "business",
+    "business": "business",
+
+    # Calendar
+    "calendar": "calendar",
+    "calendar": "calendar",
+
+    # Cloud Storage & File Sharing
+    "cloud": "cloud_storage_file_sharing",
+    "storage": "cloud_storage_file_sharing",
+    "file": "cloud_storage_file_sharing",
+    "sharing": "cloud_storage_file_sharing",
+    "cloud storage file sharing": "cloud_storage_file_sharing",
+
+    # Continuous Integration
+    "continuous": "continuous_integration",
+    "integration": "continuous_integration",
+    "continuous integration": "continuous_integration",
+
+    # Cryptocurrency
+    "cryptocurrency": "cryptocurrency",
+    "cryptocurrency": "cryptocurrency",
+
+    # Data Validation
+    "data": "data_validation",
+    "validation": "data_validation",
+    "data validation": "data_validation",
+
+    # Development
+    "development": "development",
+    "development": "development",
+
+    # Dictionaries
+    "dictionaries": "dictionaries",
+    "dictionaries": "dictionaries",
+
+    # Documents & Productivity
+    "documents": "documents_productivity",
+    "productivity": "documents_productivity",
+    "documents productivity": "documents_productivity",
+
+    # Environment
+    "environment": "environment",
+    "environment": "environment",
+
+    # Events
+    "events": "events",
+    "events": "events",
+
+    # Finance
+    "finance": "finance",
+    "finance": "finance",
+
+    # Jobs
+    "jobs": "jobs",
+    "jobs": "jobs",
+
+    # Machine Learning
+    "machine": "machine_learning",
+    "learning": "machine_learning",
+    "machine learning": "machine_learning",
+
+    # Music
+    "music": "music",
+    "music": "music",
+
+    # News
+    "news": "news",
+    "news": "news",
+
+    # Open Data
+    "open": "open_data",
+    "data": "open_data",
+    "open data": "open_data",
+
+    # Open Source Projects
+    "open": "open_source_projects",
+    "source": "open_source_projects",
+    "projects": "open_source_projects",
+    "open source projects": "open_source_projects",
+
+    # Patent
+    "patent": "patent",
+    "patent": "patent",
+
+    # Personality
+    "personality": "personality",
+    "personality": "personality",
+
+    # Phone
+    "phone": "phone",
+    "phone": "phone",
+
+    # Photography
+    "photography": "photography",
+    "photography": "photography",
+
+    # Programming
+    "programming": "programming",
+    "programming": "programming",
+
+    # Security
+    "security": "security",
+    "security": "security",
+
+    # Social
+    "social": "social",
+    "social": "social",
+
+    # Sports & Fitness
+    "sports": "sports_fitness",
+    "fitness": "sports_fitness",
+    "sports fitness": "sports_fitness",
+
+    # Test Data
+    "test": "test_data",
+    "data": "test_data",
+    "test data": "test_data",
+
+    # Text Analysis
+    "text": "text_analysis",
+    "analysis": "text_analysis",
+    "text analysis": "text_analysis",
+
+    # Tracking
+    "tracking": "tracking",
+    "tracking": "tracking",
+
+    # Transportation
+    "transportation": "transportation",
+    "transportation": "transportation",
+
+    # URL Shorteners
+    "url": "url_shorteners",
+    "shorteners": "url_shorteners",
+    "url shorteners": "url_shorteners",
+
+    # Vehicle
+    "vehicle": "vehicle",
+    "vehicle": "vehicle",
 }
 
 # ─── Idea → Features Mapping ───────────────────────────────
@@ -244,6 +472,36 @@ IDEA_TEMPLATES = {
             {"feature": "Analytics & Monitoring",     "category": "analytics",      "icon": "📊"},
         ],
         "keywords": ["fintech", "banking", "finance", "money", "wallet", "budget", "invest", "trading", "crypto"],
+    },
+    "health_app": {
+        "features": [
+            {"feature": "Health & Medical Data",      "category": "health",         "icon": "🏥"},
+            {"feature": "Nutrition & Diet",           "category": "food_drink",     "icon": "🍔"},
+            {"feature": "Fitness Tracking",           "category": "sports",         "icon": "⚽"},
+            {"feature": "User Authentication",        "category": "authentication", "icon": "🔐"},
+            {"feature": "Analytics & Monitoring",     "category": "analytics",      "icon": "📊"},
+        ],
+        "keywords": ["health", "fitness", "medical", "diet", "nutrition", "workout", "wellness", "disease", "covid"],
+    },
+    "gaming_platform": {
+        "features": [
+            {"feature": "Game Database",              "category": "games_comics",   "icon": "🎮"},
+            {"feature": "Social Interactions",        "category": "social_media",   "icon": "📱"},
+            {"feature": "Real-time Messaging",        "category": "messaging",      "icon": "💬"},
+            {"feature": "Video Streaming",            "category": "video_media",    "icon": "🎬"},
+            {"feature": "User Authentication",        "category": "authentication", "icon": "🔐"},
+        ],
+        "keywords": ["game", "gaming", "esports", "steam", "playstation", "xbox", "mmo", "rpg", "arcade"],
+    },
+    "entertainment_portal": {
+        "features": [
+            {"feature": "Movies & TV Shows",          "category": "entertainment",  "icon": "🎭"},
+            {"feature": "Books & Literature",         "category": "books_literature","icon": "📚"},
+            {"feature": "News & Updates",             "category": "messaging",      "icon": "💬"},
+            {"feature": "User Authentication",        "category": "authentication", "icon": "🔐"},
+            {"feature": "Trivia & Quizzes",           "category": "entertainment",  "icon": "🎭"},
+        ],
+        "keywords": ["movie", "tv", "show", "entertainment", "trivia", "books", "reading", "cinema", "film"],
     },
 }
 

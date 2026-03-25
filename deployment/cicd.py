@@ -194,7 +194,7 @@ def _generate_github_actions(config: dict) -> tuple[str, list[str]]:
         
     # Docker Push
     has_docker_push = False
-    needs_docker = len(targets) > 0 and not all(t in ["vercel", "netlify", "railway"] for t in targets)
+    needs_docker = len(targets) > 0 and not all(t in ["vercel", "netlify", "railway", "render"] for t in targets)
     
     if needs_docker:
         has_docker_push = True
@@ -292,6 +292,65 @@ def _generate_github_actions(config: dict) -> tuple[str, list[str]]:
                 "          vercel-args: '--prod'"
             ])
 
+        if "azure" in targets:
+            secrets.extend(["AZURE_CREDENTIALS", "AZURE_APP_NAME"])
+            yaml.extend([
+                "      - name: Login to Azure",
+                "        uses: azure/login@v1",
+                "        with:",
+                "          creds: ${{ secrets.AZURE_CREDENTIALS }}",
+                "      - name: Deploy to Azure App Service",
+                "        uses: azure/webapps-deploy@v2",
+                "        with:",
+                "          app-name: ${{ secrets.AZURE_APP_NAME }}",
+            ])
+
+        if "vps" in targets:
+            secrets.extend(["SSH_HOST", "SSH_USERNAME", "SSH_PRIVATE_KEY", "SSH_PORT"])
+            project_name = config.get("project_name", "my_project")
+            yaml.extend([
+                "      - name: Deploy to VPS via SSH",
+                "        uses: appleboy/ssh-action@v1",
+                "        with:",
+                "          host: ${{ secrets.SSH_HOST }}",
+                "          username: ${{ secrets.SSH_USERNAME }}",
+                "          key: ${{ secrets.SSH_PRIVATE_KEY }}",
+                "          port: ${{ secrets.SSH_PORT }}",
+                "          script: |",
+                f"            cd /opt/{project_name}",
+                "            docker compose pull",
+                "            docker compose up -d",
+            ])
+
+        if "digitalocean" in targets:
+            secrets.extend(["DO_API_TOKEN", "DO_APP_ID"])
+            yaml.extend([
+                "      - name: Install doctl",
+                "        uses: digitalocean/action-doctl@v2",
+                "        with:",
+                "          token: ${{ secrets.DO_API_TOKEN }}",
+                "      - name: Deploy to DigitalOcean App Platform",
+                "        run: doctl apps create-deployment ${{ secrets.DO_APP_ID }}",
+            ])
+
+        if "railway" in targets:
+            secrets.extend(["RAILWAY_TOKEN", "RAILWAY_SERVICE"])
+            yaml.extend([
+                "      - name: Install Railway CLI",
+                "        run: npm install -g @railway/cli",
+                "      - name: Deploy to Railway",
+                "        run: railway up --service=${{ secrets.RAILWAY_SERVICE }} --ci",
+                "        env:",
+                "          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}",
+            ])
+
+        if "netlify" in targets:
+            secrets.extend(["NETLIFY_AUTH_TOKEN", "NETLIFY_SITE_ID"])
+            yaml.extend([
+                "      - name: Deploy to Netlify",
+                "        run: npx netlify-cli deploy --prod --site=${{ secrets.NETLIFY_SITE_ID }} --auth=${{ secrets.NETLIFY_AUTH_TOKEN }}"
+            ])
+
     return "\n".join(yaml), secrets
 
 def _generate_gitlab_ci(config: dict) -> tuple[str, list[str]]:
@@ -351,6 +410,81 @@ def _generate_gitlab_ci(config: dict) -> tuple[str, list[str]]:
             "  script:",
             "    - aws sts get-caller-identity # Verify auth",
             "    - echo 'Deploying to AWS...'",
+            "  only:",
+            "    - main",
+            ""
+        ])
+
+    if "azure" in targets:
+        secrets.extend(["AZURE_CREDENTIALS", "AZURE_APP_NAME"])
+        yaml.extend([
+            "deploy_azure:",
+            "  stage: deploy",
+            "  image: mcr.microsoft.com/azure-cli",
+            "  script:",
+            "    - az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID",
+            "    - az webapp restart --name $AZURE_APP_NAME --resource-group myResourceGroup",
+            "  only:",
+            "    - main",
+            ""
+        ])
+
+    if "vps" in targets:
+        secrets.extend(["SSH_HOST", "SSH_USERNAME", "SSH_PRIVATE_KEY", "SSH_PORT"])
+        project_name = config.get("project_name", "my_project")
+        yaml.extend([
+            "deploy_vps:",
+            "  stage: deploy",
+            "  image: alpine:latest",
+            "  before_script:",
+            "    - apk add --no-cache openssh-client",
+            "    - eval $(ssh-agent -s)",
+            "    - echo \"$SSH_PRIVATE_KEY\" | ssh-add -",
+            "    - mkdir -p ~/.ssh && chmod 700 ~/.ssh",
+            "  script:",
+            f"    - ssh -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USERNAME@$SSH_HOST 'cd /opt/{project_name} && docker compose pull && docker compose up -d'",
+            "  only:",
+            "    - main",
+            ""
+        ])
+
+    if "digitalocean" in targets:
+        secrets.extend(["DO_API_TOKEN", "DO_APP_ID"])
+        yaml.extend([
+            "deploy_digitalocean:",
+            "  stage: deploy",
+            "  image: digitalocean/doctl:latest",
+            "  script:",
+            "    - doctl auth init -t $DO_API_TOKEN",
+            "    - doctl apps create-deployment $DO_APP_ID",
+            "  only:",
+            "    - main",
+            ""
+        ])
+
+    if "railway" in targets:
+        secrets.extend(["RAILWAY_TOKEN", "RAILWAY_SERVICE"])
+        yaml.extend([
+            "deploy_railway:",
+            "  stage: deploy",
+            "  image: node:18-alpine",
+            "  script:",
+            "    - npm install -g @railway/cli",
+            "    - railway up --service=$RAILWAY_SERVICE --ci",
+            "  only:",
+            "    - main",
+            ""
+        ])
+
+    if "netlify" in targets:
+        secrets.extend(["NETLIFY_AUTH_TOKEN", "NETLIFY_SITE_ID"])
+        yaml.extend([
+            "deploy_netlify:",
+            "  stage: deploy",
+            "  image: node:18-alpine",
+            "  script:",
+            "    - npm install -g netlify-cli",
+            "    - netlify deploy --prod --site=$NETLIFY_SITE_ID --auth=$NETLIFY_AUTH_TOKEN",
             "  only:",
             "    - main",
             ""

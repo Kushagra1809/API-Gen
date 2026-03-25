@@ -128,6 +128,8 @@ def generate_endpoints(analysis: dict) -> list[dict]:
             "is_async": func.get("is_async", False),
             "parameters": func.get("parameters", []),
             "return_type": func.get("return_type", "Any"),
+            "file": func.get("file", ""),
+            "original_symbol": func["name"],
         })
 
     # From class methods (skip private)
@@ -149,6 +151,8 @@ def generate_endpoints(analysis: dict) -> list[dict]:
                 "is_async": method_info.get("is_async", False),
                 "parameters": method_info.get("parameters", []),
                 "return_type": method_info.get("return_type", "Any"),
+                "file": cls.get("file", ""),
+                "original_symbol": cls["name"],
             })
 
     return endpoints
@@ -158,6 +162,7 @@ def generate_fastapi_code(
     project_name: str,
     endpoints: list[dict],
     original_files: dict[str, str],
+    extracted_imports: list[str] = None,
 ) -> dict[str, str]:
     """
     Generate a complete FastAPI project from endpoint definitions.
@@ -189,6 +194,18 @@ def generate_fastapi_code(
         ')',
         '',
     ]
+
+    # Generate dynamic imports for the original uploaded Python files
+    dynamic_imports = set()
+    for ep in endpoints:
+        if ep.get("file") and ep.get("original_symbol"):
+            module_name = ep["file"].replace(".py", "")
+            symbol = ep["original_symbol"]
+            dynamic_imports.add(f"from {module_name} import {symbol}")
+            
+    if dynamic_imports:
+        app_setup.extend(list(dynamic_imports))
+        app_setup.append("")
 
     # Generate Pydantic models for request bodies
     models_code = []
@@ -280,7 +297,27 @@ def generate_fastapi_code(
     app_code = "\n".join(imports + app_setup + models_code + routes_code + main_block)
 
     # Build requirements
-    requirements = "fastapi==0.104.1\nuvicorn==0.24.0\npydantic==2.5.2\npython-multipart==0.0.6\n"
+    reqs_set = {"fastapi==0.104.1", "uvicorn==0.24.0", "pydantic==2.5.2", "python-multipart==0.0.6"}
+    
+    if extracted_imports:
+        import sys
+        # sys.stdlib_module_names is available in Python 3.10+
+        stdlib = getattr(sys, "stdlib_module_names", set())
+        for imp in extracted_imports:
+            if imp not in stdlib and imp not in ["fastapi", "uvicorn", "pydantic"]:
+                # Map common imports to package names if needed, otherwise use import name.
+                imp_to_pkg = {
+                    "sklearn": "scikit-learn",
+                    "cv2": "opencv-python",
+                    "PIL": "Pillow",
+                    "dotenv": "python-dotenv",
+                    "yaml": "PyYAML",
+                    "bs4": "beautifulsoup4"
+                }
+                pkg_name = imp_to_pkg.get(imp, imp)
+                reqs_set.add(pkg_name)
+
+    requirements = "\n".join(sorted(list(reqs_set))) + "\n"
 
     files = {
         "app.py": app_code,
@@ -331,6 +368,20 @@ def generate_express_code(
         ""
     ]
     
+    # Generate dynamic imports
+    dynamic_imports = set()
+    for ep in endpoints:
+        if ep.get("file") and ep.get("original_symbol"):
+            module_name = ep["file"].rsplit(".", 1)[0]
+            if not module_name.startswith((".", "/")):
+                module_name = "./" + module_name
+            symbol = ep["original_symbol"]
+            dynamic_imports.add(f"const {{ {symbol} }} = require('{module_name}');")
+            
+    if dynamic_imports:
+        imports.extend(list(dynamic_imports))
+        imports.append("")
+        
     routes_code = []
     for ep in endpoints:
         method = ep["method"].lower()
@@ -516,6 +567,20 @@ def generate_express_ts_code(
         ""
     ]
     
+    # Generate dynamic imports
+    dynamic_imports = set()
+    for ep in endpoints:
+        if ep.get("file") and ep.get("original_symbol"):
+            module_name = ep["file"].rsplit(".", 1)[0]
+            if not module_name.startswith((".", "/")):
+                module_name = "./" + module_name
+            symbol = ep["original_symbol"]
+            dynamic_imports.add(f"import {{ {symbol} }} from '{module_name}';")
+            
+    if dynamic_imports:
+        imports.extend(list(dynamic_imports))
+        imports.append("")
+        
     routes_code = []
     for ep in endpoints:
         method = ep["method"].lower()

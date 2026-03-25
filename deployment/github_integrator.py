@@ -33,14 +33,53 @@ def set_repo_secrets(repo, secrets_dict: dict):
     if not secrets_dict:
         return
 
-    # Get the public key for the repository to encrypt secrets
-    key = repo.get_public_key()
-    
     for secret_name, secret_value in secrets_dict.items():
         if not secret_value:
             continue
-        encrypted_value = encrypt_secret(key.key, secret_value)
-        repo.create_secret(secret_name, encrypted_value, key.key_id)
+        repo.create_secret(secret_name, secret_value, "actions")
+
+def configure_github_actions(token: str, repo_name: str, pipeline_config: dict,
+                              cloud_credentials: dict, is_private: bool = True):
+    """
+    All-in-one: generate pipeline, commit workflow files to the repo, and set secrets.
+    Returns dict with repo_url, secrets_set, files_committed.
+    """
+    from deployment.cicd import generate_pipeline_config
+
+    # 1. Generate the pipeline
+    result = generate_pipeline_config(pipeline_config)
+
+    # 2. Get or create the repo
+    repo, created = get_or_create_repo(token, repo_name, is_private)
+
+    # 3. Prepare files to commit
+    files_to_commit = {}
+
+    platform = pipeline_config.get("platform", "github")
+    if platform == "github":
+        files_to_commit[".github/workflows/deploy.yml"] = result["pipeline_yaml"]
+    else:
+        files_to_commit[".gitlab-ci.yml"] = result["pipeline_yaml"]
+
+    if result.get("dockerfile"):
+        files_to_commit["Dockerfile"] = result["dockerfile"]
+
+    # 4. Commit workflow files to the repo
+    push_files_to_repo(repo, files_to_commit, commit_message="Configure CI/CD via API Gen Platform")
+
+    # 5. Set cloud credentials as repo secrets
+    if cloud_credentials:
+        set_repo_secrets(repo, cloud_credentials)
+
+    return {
+        "success": True,
+        "repo_url": repo.html_url,
+        "created_new_repo": created,
+        "files_committed": list(files_to_commit.keys()),
+        "secrets_set": [k for k, v in cloud_credentials.items() if v],
+        "pipeline_result": result,
+    }
+
 
 def push_files_to_repo(repo, files_dict: dict, commit_message: str = "Initial API Gen commit"):
     """

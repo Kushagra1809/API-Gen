@@ -26,7 +26,6 @@
             <a href="#" class="nav-link active" data-page="discover">🔍 Discover</a>
             <a href="#" class="nav-link" data-page="generator">🚀 Generator</a>
             <a href="#" class="nav-link" data-page="catalog">📋 Catalog</a>
-            <a href="#" class="nav-link" data-page="agent">🤖 Agent</a>
         </div>
         <div class="nav-actions">
             <a href="/docs" target="_blank" class="btn-nav-action">📖 API Docs</a>
@@ -86,8 +85,8 @@
         <!-- GENERATOR PAGE -->
         <section class="page" id="page-generator">
             <div class="page-header">
-                <h1 class="page-title">🚀 Python → REST API Generator</h1>
-                <p class="page-desc">Upload your Python source code and get a complete REST API with documentation,
+                <h1 class="page-title">🚀 Application Code → REST API</h1>
+                <p class="page-desc">Upload your Application source code and get a complete REST API with documentation,
                     deployment configs, and gateway middleware.</p>
             </div>
 
@@ -168,25 +167,6 @@ def predict(image: str, model: str = 'default') -> dict:
             <div id="catalog-grid" class="catalog-grid"></div>
         </section>
 
-        <!-- AGENT PAGE -->
-        <section class="page" id="page-agent">
-            <div class="page-header">
-                <h1 class="page-title">🤖 AI Agent Mode</h1>
-                <p class="page-desc">Let the AI agent discover, evaluate, verify, and integrate APIs for you.</p>
-            </div>
-
-            <div class="agent-container">
-                <div class="agent-input-row">
-                    <input type="text" id="agent-query" class="search-input-sm"
-                        placeholder="e.g., Find the best free image recognition API..." style="flex:1">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="agent-integrate"> Auto-integrate
-                    </label>
-                    <button class="btn-primary" onclick="runAgent()">🤖 Run Agent</button>
-                </div>
-                <div id="agent-results" class="agent-results"></div>
-            </div>
-        </section>
 
     </main>
 
@@ -255,6 +235,14 @@ def predict(image: str, model: str = 'default') -> dict:
                         Service</label>
                     <label style="cursor:pointer;"><input type="checkbox" name="cicd-target" value="vercel">
                         Vercel</label>
+                    <label style="cursor:pointer;"><input type="checkbox" name="cicd-target" value="vps"> 🖥️ VPS / SSH
+                        Server</label>
+                    <label style="cursor:pointer;"><input type="checkbox" name="cicd-target" value="digitalocean"> 🌊
+                        DigitalOcean</label>
+                    <label style="cursor:pointer;"><input type="checkbox" name="cicd-target" value="railway"> 🚂
+                        Railway</label>
+                    <label style="cursor:pointer;"><input type="checkbox" name="cicd-target" value="render"> ☁️
+                        Render</label>
                     <label style="cursor:pointer;"><input type="checkbox" name="cicd-target" value="netlify">
                         Netlify</label>
                 </div>
@@ -305,6 +293,10 @@ def predict(image: str, model: str = 'default') -> dict:
                 <button class="btn-secondary" onclick="closeCicdModal()">Cancel</button>
                 <button class="btn-primary" onclick="generateCicdPipeline()" id="cicd-gen-btn">Generate
                     Pipeline</button>
+                <button class="btn-primary" onclick="configureGitHubActions()" id="cicd-configure-btn"
+                    style="background: linear-gradient(135deg, #238636 0%, #2ea043 100%);">
+                    ⚙️ Configure GitHub Actions
+                </button>
             </div>
         </div>
     </div>
@@ -361,25 +353,65 @@ def predict(image: str, model: str = 'default') -> dict:
             const deployTargets = Array.from(targetCheckboxes).map(cb => cb.value);
             const registry = document.getElementById('cicd-registry').value;
 
-            let requiredSecrets = new Set();
+            // Map of secret name → { placeholder, type }
+            const secretMeta = {
+                'DOCKER_USERNAME': { placeholder: 'Your Docker Hub username', type: 'text' },
+                'DOCKER_PASSWORD': { placeholder: 'Your Docker Hub access token', type: 'password' },
+                'AWS_ACCESS_KEY_ID': { placeholder: 'AKIA...', type: 'password' },
+                'AWS_SECRET_ACCESS_KEY': { placeholder: 'Your AWS secret key', type: 'password' },
+                'AWS_REGION': { placeholder: 'e.g. us-east-1', type: 'text' },
+                'GCP_CREDENTIALS': { placeholder: 'Paste service account JSON', type: 'password' },
+                'VERCEL_TOKEN': { placeholder: 'Your Vercel API token', type: 'password' },
+                'VERCEL_ORG_ID': { placeholder: 'org_...', type: 'text' },
+                'VERCEL_PROJECT_ID': { placeholder: 'prj_...', type: 'text' },
+                'AZURE_CREDENTIALS': { placeholder: 'Paste Azure service principal JSON', type: 'password' },
+                'AZURE_APP_NAME': { placeholder: 'e.g. my-web-app', type: 'text' },
+                'SSH_HOST': { placeholder: 'Server IP or hostname, e.g. 192.168.1.100', type: 'text' },
+                'SSH_USERNAME': { placeholder: 'e.g. root, ubuntu, deploy', type: 'text' },
+                'SSH_PRIVATE_KEY': { placeholder: 'Paste your private key (id_rsa / id_ed25519)', type: 'password' },
+                'SSH_PORT': { placeholder: 'Default: 22', type: 'text' },
+                'DO_API_TOKEN': { placeholder: 'Your DigitalOcean API token', type: 'password' },
+                'DO_APP_ID': { placeholder: 'Your DigitalOcean App ID', type: 'text' },
+                'RAILWAY_TOKEN': { placeholder: 'Your Railway project token', type: 'password' },
+                'RAILWAY_SERVICE': { placeholder: 'Your Railway service name or Service ID', type: 'text' },
+                'NETLIFY_AUTH_TOKEN': { placeholder: 'Your Netlify authentication token', type: 'password' },
+                'NETLIFY_SITE_ID': { placeholder: 'Your Netlify Site ID', type: 'text' },
+            };
 
-            if (deployTargets.length > 0 && deployTargets.some(t => !["vercel", "netlify", "railway"].includes(t))) {
+            let requiredSecrets = new Map(); // preserves insertion order
+
+            // Docker registry secrets
+            if (deployTargets.length > 0 && deployTargets.some(t => !["vercel", "netlify", "railway", "render"].includes(t))) {
                 if (registry === 'dockerhub') {
-                    requiredSecrets.add('DOCKER_USERNAME');
-                    requiredSecrets.add('DOCKER_PASSWORD');
+                    requiredSecrets.set('DOCKER_USERNAME', secretMeta['DOCKER_USERNAME']);
+                    requiredSecrets.set('DOCKER_PASSWORD', secretMeta['DOCKER_PASSWORD']);
                 }
             }
 
+            // Cloud-specific secrets
             if (deployTargets.includes('aws')) {
-                requiredSecrets.add('AWS_ACCESS_KEY_ID');
-                requiredSecrets.add('AWS_SECRET_ACCESS_KEY');
-                requiredSecrets.add('AWS_REGION');
+                ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION'].forEach(s => requiredSecrets.set(s, secretMeta[s]));
             }
-            if (deployTargets.includes('gcp')) requiredSecrets.add('GCP_CREDENTIALS');
+            if (deployTargets.includes('gcp')) {
+                requiredSecrets.set('GCP_CREDENTIALS', secretMeta['GCP_CREDENTIALS']);
+            }
             if (deployTargets.includes('vercel')) {
-                requiredSecrets.add('VERCEL_TOKEN');
-                requiredSecrets.add('VERCEL_ORG_ID');
-                requiredSecrets.add('VERCEL_PROJECT_ID');
+                ['VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_PROJECT_ID'].forEach(s => requiredSecrets.set(s, secretMeta[s]));
+            }
+            if (deployTargets.includes('azure')) {
+                ['AZURE_CREDENTIALS', 'AZURE_APP_NAME'].forEach(s => requiredSecrets.set(s, secretMeta[s]));
+            }
+            if (deployTargets.includes('vps')) {
+                ['SSH_HOST', 'SSH_USERNAME', 'SSH_PRIVATE_KEY', 'SSH_PORT'].forEach(s => requiredSecrets.set(s, secretMeta[s]));
+            }
+            if (deployTargets.includes('digitalocean')) {
+                ['DO_API_TOKEN', 'DO_APP_ID'].forEach(s => requiredSecrets.set(s, secretMeta[s]));
+            }
+            if (deployTargets.includes('railway')) {
+                ['RAILWAY_TOKEN', 'RAILWAY_SERVICE'].forEach(s => requiredSecrets.set(s, secretMeta[s]));
+            }
+            if (deployTargets.includes('netlify')) {
+                ['NETLIFY_AUTH_TOKEN', 'NETLIFY_SITE_ID'].forEach(s => requiredSecrets.set(s, secretMeta[s]));
             }
 
             if (requiredSecrets.size === 0) {
@@ -387,16 +419,131 @@ def predict(image: str, model: str = 'default') -> dict:
                 return;
             }
 
-            let html = '<h4 style="font-size:0.9rem;margin-bottom:0.5rem;color:var(--accent-1)">Required Secrets:</h4>';
-            requiredSecrets.forEach(secret => {
+            let html = '<h4 style="font-size:0.9rem;margin-bottom:0.5rem;color:var(--accent-1)">Required Cloud Credentials:</h4>';
+            requiredSecrets.forEach((meta, secret) => {
+                const inputType = meta.type || 'password';
                 html += `
                     <div style="margin-bottom:0.75rem;">
-                        <label style="display:block;margin-bottom:0.25rem;font-size:0.8rem;">${secret}</label>
-                        <input type="password" class="input-field d-secret-val" data-secret="${secret}" style="width:100%" placeholder="Enter value for ${secret}">
+                        <label style="display:block;margin-bottom:0.25rem;font-size:0.8rem;font-weight:600;">${secret}</label>
+                        <input type="${inputType}" class="input-field d-secret-val" data-secret="${secret}" style="width:100%" placeholder="${meta.placeholder}">
                     </div>
                 `;
             });
             container.innerHTML = html;
+        }
+
+        async function configureGitHubActions() {
+            const btn = document.getElementById('cicd-configure-btn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Configuring...';
+            btn.disabled = true;
+
+            try {
+                const token = document.getElementById('cicd-github-token').value.trim();
+                const repoName = document.getElementById('cicd-repo-name').value.trim();
+
+                if (!token || !repoName) {
+                    // If automation section is hidden, show it
+                    document.getElementById('cicd-automate').checked = true;
+                    toggleAutomationFields();
+                    throw new Error("GitHub Token and Repository Name are required. Please fill them in the 'Automate Push to GitHub' section below.");
+                }
+
+                const platform = document.getElementById('cicd-platform').value;
+                const testCommand = document.getElementById('cicd-test').value.trim();
+                const buildCommand = document.getElementById('cicd-build').value.trim();
+                const needsDocker = document.getElementById('cicd-dockerfile').checked;
+                const registry = document.getElementById('cicd-registry').value;
+
+                const targetCheckboxes = document.querySelectorAll('input[name="cicd-target"]:checked');
+                const deployTargets = Array.from(targetCheckboxes).map(cb => cb.value);
+
+                const projName = document.getElementById('project-name')?.value || 'my_project';
+                const fw = generatorResult?.framework || 'fastapi';
+
+                let lang = 'python';
+                let pm = 'pip';
+                if (fw.includes('express')) { lang = 'typescript'; pm = 'npm'; }
+                else if (fw.includes('gin')) { lang = 'go'; pm = 'go mod'; }
+                else if (fw.includes('spring')) { lang = 'java'; pm = 'maven'; }
+                else if (fw.includes('asp_net')) { lang = 'c#'; pm = 'dotnet'; }
+
+                // Collect cloud credentials
+                const cloudCredentials = {};
+                document.querySelectorAll('.d-secret-val').forEach(input => {
+                    const secName = input.dataset.secret;
+                    const secVal = input.value.trim();
+                    if (secVal) cloudCredentials[secName] = secVal;
+                });
+
+                const payload = {
+                    github_token: token,
+                    repo_name: repoName,
+                    is_private: true,
+                    platform: platform,
+                    project_name: projName,
+                    language: lang,
+                    framework: fw,
+                    package_manager: pm,
+                    test_command: testCommand,
+                    build_command: buildCommand,
+                    port: "8000",
+                    needs_dockerfile: needsDocker,
+                    deploy_targets: deployTargets,
+                    registry: registry,
+                    cloud_credentials: cloudCredentials,
+                };
+
+                btn.textContent = 'Committing workflow & setting secrets...';
+
+                const resp = await fetch(`${API_BASE}/api/configure-github-actions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.detail || `HTTP ${resp.status}`);
+                }
+
+                const result = await resp.json();
+
+                showToast(`✅ GitHub Actions configured! ${result.files_committed?.length || 0} files committed, ${result.secrets_set?.length || 0} secrets set.`, 'success');
+
+                // Save settings for next time
+                try {
+                    await fetch(`${API_BASE}/api/settings/github`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ github_token: token, default_repo: repoName })
+                    });
+                } catch (err) {
+                    console.error("Failed to save GitHub settings:", err);
+                }
+
+                // Update deploy tab if generatorResult exists
+                if (generatorResult) {
+                    if (!generatorResult.deployment_configs) generatorResult.deployment_configs = {};
+                    if (result.pipeline_result) {
+                        const pipelineFilename = platform === 'github' ? '.github/workflows/deploy.yml' : '.gitlab-ci.yml';
+                        generatorResult.deployment_configs[pipelineFilename] = result.pipeline_result.pipeline_yaml;
+                        generatorResult.deployment_configs['CI/CD Instructions'] = result.pipeline_result.instructions;
+                        if (result.pipeline_result.dockerfile) {
+                            generatorResult.deployment_configs['Dockerfile'] = result.pipeline_result.dockerfile;
+                        }
+                    }
+                }
+
+                closeCicdModal();
+                if (generatorResult) showOutputTab('deploy');
+
+            } catch (err) {
+                showToast(`Configuration failed: ${err.message}`, 'error');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
         }
 
         async function generateCicdPipeline() {

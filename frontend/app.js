@@ -121,7 +121,7 @@ function renderAPICard(api) {
                     <div class="api-name">${api.name}</div>
                     <div class="api-provider">${api.provider}</div>
                 </div>
-                <span class="api-score ${scoreClass}">${api.composite_score}</span>
+                <span class="api-score ${scoreClass}">${Number(api.composite_score).toFixed(1)}</span>
             </div>
             <div class="api-desc">${api.description}</div>
             <div class="api-badges">
@@ -134,7 +134,7 @@ function renderAPICard(api) {
                 ${sdks ? ' · SDKs: ' + sdks : ''}
             </div>
             <div class="score-bar-container">
-                <span class="score-bar-value" title="Score">${api.composite_score}</span>
+                <span class="score-bar-value" title="Score">${Number(api.composite_score).toFixed(1)}</span>
                 <div class="score-bar">
                     <div class="score-bar-fill" style="width:${api.composite_score}%;background:var(--gradient-primary)"></div>
                 </div>
@@ -463,12 +463,12 @@ function renderCatalogCard(api) {
                 <div class="api-name">${api.name}</div>
                 <div class="api-provider">${api.provider} · ${api.category}</div>
             </div>
-            <span class="api-score ${scoreClass}">${api.composite_score}</span>
+            <span class="api-score ${scoreClass}">${Number(api.composite_score).toFixed(1)}</span>
         </div>
         <div class="api-desc">${api.description || ''}</div>
         <div class="api-badges">${priceBadge} ${tags}</div>
         <div class="score-bar-container">
-            <span class="score-bar-value">${api.composite_score}</span>
+            <span class="score-bar-value">${Number(api.composite_score).toFixed(1)}</span>
             <div class="score-bar">
                 <div class="score-bar-fill" style="width:${api.composite_score}%;background:var(--gradient-primary)"></div>
             </div>
@@ -476,60 +476,7 @@ function renderCatalogCard(api) {
     `;
 }
 
-// ─── Agent ────────────────────────────────────────────────
-async function runAgent() {
-    const query = document.getElementById('agent-query').value.trim();
-    if (!query) return showToast('Please enter a query', 'error');
 
-    const autoIntegrate = document.getElementById('agent-integrate').checked;
-    const results = document.getElementById('agent-results');
-    results.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-muted);">🤖 Agent is thinking...</div>';
-
-    try {
-        const resp = await fetch(`${API_BASE}/api/agent`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query, auto_integrate: autoIntegrate }),
-        });
-
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        renderAgentResults(data);
-    } catch (err) {
-        results.innerHTML = `<div style="color:var(--error);padding:2rem;">❌ Agent error: ${err.message}</div>`;
-    }
-}
-
-function renderAgentResults(data) {
-    const results = document.getElementById('agent-results');
-
-    let html = `<div class="agent-reasoning">${escapeHtml(data.reasoning || '')}</div>`;
-
-    // Recommendations
-    if (data.recommendations?.length) {
-        html += '<div class="features-grid">';
-        html += '<div class="feature-section"><div class="feature-header"><span class="feature-icon">🏆</span><span class="feature-name">Top Recommendations</span></div>';
-        html += '<div class="api-cards">';
-        data.recommendations.forEach(api => {
-            html += renderAPICard(api);
-        });
-        html += '</div></div></div>';
-    }
-
-    // Integration snippets
-    if (data.integration_snippets && Object.keys(data.integration_snippets).length) {
-        for (const [name, code] of Object.entries(data.integration_snippets)) {
-            html += `
-                <div class="agent-integration">
-                    <h4>🔌 Integration: ${escapeHtml(name)}</h4>
-                    <pre>${escapeHtml(code)}</pre>
-                </div>
-            `;
-        }
-    }
-
-    results.innerHTML = html;
-}
 
 // ─── Utilities ────────────────────────────────────────────
 function showToast(message, type = 'info') {
@@ -552,7 +499,6 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         if (currentPage === 'discover') discoverAPIs();
         else if (currentPage === 'generator') generateAPI();
-        else if (currentPage === 'agent') runAgent();
     }
 });
 

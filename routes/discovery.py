@@ -54,11 +54,12 @@ def list_apis(
         query = query.filter(APIEntry.free_tier == True)
 
     if search:
-        search_term = f"%{search}%"
+        search_term = f"%{search.lower()}%"
+        from sqlalchemy import func
         query = query.filter(
-            APIEntry.name.ilike(search_term) |
-            APIEntry.description.ilike(search_term) |
-            APIEntry.provider.ilike(search_term)
+            func.lower(APIEntry.name).ilike(search_term) |
+            func.lower(APIEntry.description).ilike(search_term) |
+            func.lower(APIEntry.provider).ilike(search_term)
         )
 
     # Sort

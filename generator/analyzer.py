@@ -112,6 +112,15 @@ def analyze_file(source_code: str, filename: str = "module.py") -> dict:
 
     functions = []
     classes = []
+    imports = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imports.add(alias.name.split('.')[0])
+        elif isinstance(node, ast.ImportFrom):
+            if node.module:
+                imports.add(node.module.split('.')[0])
 
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -124,6 +133,7 @@ def analyze_file(source_code: str, filename: str = "module.py") -> dict:
     return {
         "functions": functions,
         "classes": classes,
+        "imports": list(imports),
     }
 
 
@@ -392,6 +402,7 @@ def analyze_project(project_name: str, files: dict[str, str]) -> dict:
 
     all_functions = []
     all_classes = []
+    all_imports = set()
 
     for filename, source_code in files.items():
         if filename.endswith(".py"):
@@ -411,6 +422,8 @@ def analyze_project(project_name: str, files: dict[str, str]) -> dict:
             
         all_functions.extend(result.get("functions", []))
         all_classes.extend(result.get("classes", []))
+        if "imports" in result:
+            all_imports.update(result["imports"])
 
     characteristics = detect_project_characteristics(files)
     framework, reason = select_framework(characteristics, all_functions, all_classes, files)
@@ -426,4 +439,5 @@ def analyze_project(project_name: str, files: dict[str, str]) -> dict:
         "has_file_io": characteristics["has_file_io"],
         "framework_recommendation": framework,
         "framework_reason": reason,
+        "imports": list(all_imports),
     }

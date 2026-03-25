@@ -211,3 +211,24 @@ class GitHubSettings(BaseModel):
 class GitHubSettingsUpdate(BaseModel):
     github_token: str
     default_repo: str
+
+
+class ConfigureActionsRequest(BaseModel):
+    """Request to configure GitHub Actions on a repository."""
+    github_token: str
+    repo_name: str
+    is_private: bool = True
+    # Pipeline configuration (same fields as CICDRequest)
+    platform: str = "github"
+    project_name: str = "my_project"
+    language: str = "python"
+    framework: str = "fastapi"
+    package_manager: str = "pip"
+    test_command: str = ""
+    build_command: str = ""
+    port: str = "8000"
+    needs_dockerfile: bool = False
+    deploy_targets: list[str] = []
+    registry: str = "dockerhub"
+    # Cloud credentials — key-value of secret name to value
+    cloud_credentials: dict[str, str] = {}

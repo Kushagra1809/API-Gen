@@ -9,7 +9,8 @@ from models import GeneratedProject, UserSettings
 from schemas import (
     GenerateRequest, GenerateResponse, AnalysisResult, 
     CICDRequest, CICDResponse, GitHubPushRequest,
-    GitHubSettings, GitHubSettingsUpdate
+    GitHubSettings, GitHubSettingsUpdate,
+    ConfigureActionsRequest
 )
 from generator.analyzer import analyze_project
 from generator.rest_generator import (
@@ -140,6 +141,7 @@ def generate_api(request: GenerateRequest, db: Session = Depends(get_db)):
             project_name=request.project_name,
             endpoints=endpoints,
             original_files=request.files,
+            extracted_imports=analysis.get("imports", []),
         )
 
     # Step 5: Generate OpenAPI spec
@@ -302,3 +304,43 @@ def update_github_settings(settings_in: GitHubSettingsUpdate, db: Session = Depe
     settings.default_repo = settings_in.default_repo
     db.commit()
     return {"success": True}
+
+
+@router.post("/configure-github-actions")
+def configure_github_actions_endpoint(request: ConfigureActionsRequest):
+    """
+    ⚙️ Configure GitHub Actions on a repository.
+
+    Generates a CI/CD pipeline, commits the workflow YAML file
+    (`.github/workflows/deploy.yml`) directly to the repo, and
+    sets all provided cloud credentials as GitHub Actions secrets.
+    """
+    from deployment.github_integrator import configure_github_actions
+
+    try:
+        pipeline_config = {
+            "platform": request.platform,
+            "project_name": request.project_name,
+            "language": request.language,
+            "framework": request.framework,
+            "package_manager": request.package_manager,
+            "test_command": request.test_command,
+            "build_command": request.build_command,
+            "port": request.port,
+            "needs_dockerfile": request.needs_dockerfile,
+            "deploy_targets": request.deploy_targets,
+            "cloud_config": {},
+            "registry": request.registry,
+        }
+
+        result = configure_github_actions(
+            token=request.github_token,
+            repo_name=request.repo_name,
+            pipeline_config=pipeline_config,
+            cloud_credentials=request.cloud_credentials,
+            is_private=request.is_private,
+        )
+
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

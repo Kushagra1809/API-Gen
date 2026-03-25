@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from contextlib import asynccontextmanager
 
 from database import init_db, SessionLocal
 from discovery.knowledge_base import seed_database
@@ -21,16 +22,29 @@ from routes.discovery import router as discovery_router
 from routes.generator import router as generator_router
 from routes.agent import router as agent_router
 
+# ─── Lifespan ─────────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database and seed API catalog on startup."""
+    init_db()
+    db = SessionLocal()
+    try:
+        seed_database(db)
+    finally:
+        db.close()
+    yield
+
 # ─── Application ─────────────────────────────────────────
 app = FastAPI(
     title="🚀 API Gen Platform",
+    lifespan=lifespan,
     description=(
         "AI-Powered API Discovery & REST API Generator.\n\n"
         "**Features:**\n"
         "- 🔍 Discover the best APIs for your application idea\n"
         "- 🏆 Ranked by composite score (popularity, docs, reliability, pricing, latency)\n"
         "- 🔬 Analyze Python code and auto-generate REST APIs\n"
-        "- 📦 Generate deployment configs (Docker, K8s, AWS, Vercel, Railway)\n"
+        "- 📦 Generate deployment configs (Docker, K8s, AWS, Vercel, Railway, Render)\n"
         "- 🤖 AI Agent Mode for intelligent API recommendation\n"
         "- 💻 CLI tool: `api-gen scan`, `api-gen recommend`, `api-gen deploy`"
     ),
@@ -78,18 +92,6 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "version": "1.0.0"}
-
-
-# ─── Startup ─────────────────────────────────────────────
-@app.on_event("startup")
-async def startup():
-    """Initialize database and seed API catalog on startup."""
-    init_db()
-    db = SessionLocal()
-    try:
-        seed_database(db)
-    finally:
-        db.close()
 
 
 # ─── Entry Point ─────────────────────────────────────────

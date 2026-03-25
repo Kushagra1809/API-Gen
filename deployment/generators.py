@@ -1,5 +1,5 @@
 """
-Deployment Configuration Generators — Docker, Kubernetes, AWS Lambda, Cloud Run, Vercel, Railway.
+Deployment Configuration Generators — Docker, Kubernetes, AWS Lambda, Cloud Run, Vercel, Railway, Render.
 """
 from config import DEFAULT_PYTHON_VERSION, DEFAULT_PORT
 
@@ -261,10 +261,24 @@ def generate_railway_config(project_name: str = "my-api") -> str:
 builder = "nixpacks"
 
 [deploy]
-startCommand = "uvicorn app:app --host 0.0.0.0 --port $PORT"
-healthcheckPath = "/health"
+startCommand = "sh -c 'uvicorn app:app --host 0.0.0.0 --port ${{PORT:-8000}}'"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
+"""
+
+
+def generate_render_config(project_name: str = "my-api") -> str:
+    """Generate Render blueprint configuration."""
+    return f"""# ─── Render Configuration ───
+services:
+  - type: web
+    name: {project_name}
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
 """
 
 
@@ -281,4 +295,5 @@ def generate_all_deployment_configs(
         "cloud-run.yml": generate_cloud_run(project_name),
         "vercel.json": generate_vercel_config(project_name),
         "railway.toml": generate_railway_config(project_name),
+        "render.yaml": generate_render_config(project_name),
     }
